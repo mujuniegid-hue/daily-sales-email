@@ -131,6 +131,28 @@ On success the terminal prints `Email sent to <recipient>`, and the summary arri
 - Gmail limits how many emails an account can send per day. This is far above what a once-a-day report needs.
 
 ---
+## Setup (3 steps)
+
+**Before you start:** install [Python 3](https://www.python.org/downloads/) (tick "Add Python to PATH") and create a Gmail app password.
+
+1. **Install the one library:** open a terminal in this folder and run `pip install python-dotenv`
+2. **Add your details:** copy `.env.example` to `.env` and fill in your Gmail address, app password and recipient email.
+3. **Schedule it:** double-click `setup_schedule.bat`. The report now sends daily at 6pm.
+
+**Check that it works:** run `python report.py` once. A new line appears in `run_log.txt`.
+
+## Reading the log
+
+Each run adds one line to `run_log.txt`:
+
+`2026-11-12 | 18:00:02 | success | rows=14`
+
+Format: date, time, status (`success` or `error`), rows processed. See `sample_run_log.txt` for an example.
+
+## Limits
+
+- The computer must be on at 6pm.
+- Change the time by editing `18:00` in `setup_schedule.bat` and running it again.
 
 ## Commercial offer: what I would charge a shop owner
 

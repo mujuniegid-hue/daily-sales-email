@@ -2,12 +2,18 @@ import csv
 import html
 import os
 import smtplib
-from datetime import date
+from datetime import date, datetime
 from email.message import EmailMessage
+from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()
+# Full addresses, so the script works no matter where the scheduler starts it
+BASE_DIR = Path(__file__).resolve().parent
+CSV_FILE = BASE_DIR / "sales.csv"
+LOG_FILE = BASE_DIR / "run_log.txt"
+
+load_dotenv(BASE_DIR / ".env")
 
 RESTOCK_LEVEL = 5
 
@@ -88,8 +94,18 @@ def send_email(subject, html_body):
     password = os.getenv("GMAIL_APP_PASSWORD")
     recipient = os.getenv("RECIPIENT_EMAIL")
 
-    if not sender or not password or not recipient:
-        raise SystemExit("Missing details in .env file. Check all three lines.")
+    # Collect the NAMES of any missing settings (never print the values)
+    missing = [
+        name
+        for name, value in [
+            ("GMAIL_ADDRESS", sender),
+            ("GMAIL_APP_PASSWORD", password),
+            ("RECIPIENT_EMAIL", recipient),
+        ]
+        if not value
+    ]
+    if missing:
+        raise ValueError("Missing in .env file: " + ", ".join(missing))
 
     message = EmailMessage()
     message["Subject"] = subject
@@ -106,8 +122,23 @@ def send_email(subject, html_body):
     print(f"Email sent to {recipient}")
 
 
+def write_log(status, rows):
+    now = datetime.now()
+    line = f"{now:%Y-%m-%d} | {now:%H:%M:%S} | {status} | rows={rows}\n"
+    with open(LOG_FILE, "a", encoding="utf-8") as file:
+        file.write(line)
+
+
 if __name__ == "__main__":
-    metrics = calculate_metrics("sales.csv")
-    today = date.today().strftime("%d %b %Y")
-    email_html = build_html_email(metrics, today)
-    send_email(f"Daily Sales Summary: {today}", email_html)
+    rows = 0
+    try:
+        metrics = calculate_metrics(CSV_FILE)
+        rows = metrics["transactions"]
+        today = date.today().strftime("%d %b %Y")
+        email_html = build_html_email(metrics, today)
+        send_email(f"Daily Sales Summary: {today}", email_html)
+        write_log("success", rows)
+    except Exception as e:
+        write_log("error", rows)
+        print(f"Error: {e}")
+        raise
